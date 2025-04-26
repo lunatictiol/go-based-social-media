@@ -10,6 +10,8 @@ import (
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 )
 
+const version = "0.0.1"
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -34,6 +36,7 @@ func main() {
 			maxIdleConns: maxIdleConns,
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
 		},
+		env: env.GetString("ENV", "development"),
 	}
 	fmt.Println("connecting to database")
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)

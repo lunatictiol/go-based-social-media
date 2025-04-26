@@ -18,6 +18,7 @@ type application struct {
 type config struct {
 	addr string
 	db   dbConfig
+	env  string
 }
 type dbConfig struct {
 	addr         string
@@ -25,6 +26,8 @@ type dbConfig struct {
 	maxIdleConns int
 	maxIdleTime  string
 }
+
+//routing
 
 func (a *application) mount() http.Handler {
 	r := chi.NewRouter()
@@ -40,8 +43,18 @@ func (a *application) mount() http.Handler {
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Route("/v1", func(r chi.Router) {
+	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", a.healthCheckHandler)
+
+		//post handler
+		r.Route("/post", func(r chi.Router) {
+			r.Post("/", a.createPosthandler)
+
+			r.Route("/{postID}", func(r chi.Router) {
+				r.Get("/", a.getPostHandler)
+
+			})
+		})
 
 	})
 

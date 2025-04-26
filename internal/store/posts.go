@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/lib/pq"
 )
@@ -21,7 +22,7 @@ type PostStore struct {
 }
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
-	query := `INSERT INTO post (content, title,user_id,tags) 
+	query := `INSERT INTO posts (content, title,user_id,tags) 
 	VALUES ($1,$2,$3,$4) RETURNING id,created_at,updated_at
 	`
 	err := s.db.QueryRowContext(
@@ -30,7 +31,6 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 		post.Content,
 		post.Title,
 		post.UserId,
-		post.Tags,
 		pq.Array(post.Tags),
 	).Scan(
 		&post.Id,
@@ -41,4 +41,32 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 		return err
 	}
 	return nil
+}
+
+func (s *PostStore) GetPostByID(ctx context.Context, id string) (*Post, error) {
+	var post Post
+	query := ` SELECT * FROM posts WHERE id = $1
+	`
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		id,
+	).Scan(
+		&post.Id,
+		&post.Title,
+		&post.UserId,
+		&post.Content,
+		&post.CreatedAt,
+		pq.Array(&post.Tags),
+		&post.UpdatedAt,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &post, nil
 }
