@@ -10,6 +10,7 @@ import (
 var (
 	ErrNotFound          = errors.New("resource not found")
 	QueryTimeoutDuration = time.Second * 5
+	ErrConflict          = errors.New("resource already exists")
 )
 
 type Storage struct {
@@ -21,17 +22,23 @@ type Storage struct {
 	}
 	Users interface {
 		Create(context.Context, *User) error
+		GetUserByID(ctx context.Context, id int64) (*User, error)
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error
 		GetByPostID(ctx context.Context, postID int64) ([]Comment, error)
 	}
+	Followers interface {
+		Follow(ctx context.Context, userId, followerId int64) error
+		UnFollow(ctx context.Context, userId, followerId int64) error
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Posts:    &PostStore{db: db},
-		Users:    &UserStore{db: db},
-		Comments: &CommentStore{db: db},
+		Posts:     &PostStore{db: db},
+		Users:     &UserStore{db: db},
+		Comments:  &CommentStore{db: db},
+		Followers: &FollowStore{db: db},
 	}
 }
