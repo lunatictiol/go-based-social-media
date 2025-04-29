@@ -24,6 +24,11 @@ type updatePostPayload struct {
 	Title   *string `json:"title" validate:"required,max=100"`
 	Content *string `json:"content" validate:"required,max=1000"`
 }
+type commentPayload struct {
+	UserId  int    `json:"user_id" validate:"required"`
+	PostId  int    `json:"post_id" validate:"required"`
+	Content string `json:"content" validate:"required,max=1000"`
+}
 
 func (a *application) createPosthandler(w http.ResponseWriter, r *http.Request) {
 	var payload postPayload
@@ -160,4 +165,33 @@ func (a *application) postContextMiddleware(next http.Handler) http.Handler {
 func (a *application) getPostfromCtx(r *http.Request) *store.Post {
 	post, _ := r.Context().Value(postKey).(*store.Post)
 	return post
+}
+
+func (a *application) createCommentHandler(w http.ResponseWriter, r *http.Request) {
+	var payload commentPayload
+	err := ReadJSON(w, r, &payload)
+	if err != nil {
+		a.BadRequestResponse(w, r, err)
+		return
+	}
+	if err := Validator.Struct(payload); err != nil {
+		a.BadRequestResponse(w, r, err)
+		return
+	}
+	err = a.store.Comments.Create(r.Context(), &store.Comment{
+		UserId:  int64(payload.UserId),
+		PostId:  int64(payload.PostId),
+		Content: payload.Content,
+	})
+
+	if err != nil {
+		a.WriteInternalServerError(w, r, err)
+		return
+	}
+
+	if err := a.jsonResponse(w, http.StatusOK, "comment added successfully"); err != nil {
+		a.WriteInternalServerError(w, r, err)
+		return
+	}
+
 }

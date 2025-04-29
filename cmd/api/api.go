@@ -49,7 +49,7 @@ func (a *application) mount() http.Handler {
 		//post handler
 		r.Route("/post", func(r chi.Router) {
 			r.Post("/", a.createPosthandler)
-
+			r.Post("/comment", a.createCommentHandler)
 			r.Route("/{postID}", func(r chi.Router) {
 				r.Use(a.postContextMiddleware)
 				r.Get("/", a.getPostHandler)
