@@ -40,13 +40,11 @@ func WriteJSONError(w http.ResponseWriter, status int, message string) error {
 
 func (a *application) jsonResponse(w http.ResponseWriter, status int, data any) error {
 	type envolope struct {
-		Success bool `json:success`
-		Data    any  `json:data`
+		Success bool `json:"success"`
+		Data    any  `json:"data"`
 	}
-
 	return WriteJSON(w, status, &envolope{
 		Success: true,
 		Data:    data,
 	})
-
 }
