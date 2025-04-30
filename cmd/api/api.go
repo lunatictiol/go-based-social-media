@@ -69,6 +69,11 @@ func (a *application) mount() http.Handler {
 			})
 		})
 
+		//feed handler
+		r.Group(func(r chi.Router) {
+			r.Get("/feed", a.getUserFeedHandler)
+		})
+
 	})
 
 	return r
