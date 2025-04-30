@@ -12,6 +12,24 @@ import (
 
 const version = "0.0.1"
 
+//	@title			Go based social media
+//	@description	API for Go social medias, a social network for gohpers
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
+//	@contact.url	http://www.swagger.io/support
+//	@contact.email	support@swagger.io
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+//	@BasePath					api/v1
+//
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							header
+//	@name						Authorization
+//	@description
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -29,7 +47,8 @@ func main() {
 	}
 
 	cfg := config{
-		addr: env.GetString("PORT", ":8080"),
+		addr:   env.GetString("PORT", ":8080"),
+		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres"),
 			maxOpenConns: maxOpenConns,
