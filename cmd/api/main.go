@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/joho/godotenv"
 	"github.com/lunatictiol/go-based-social-media/internal/db"
 	"github.com/lunatictiol/go-based-social-media/internal/env"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
+	"go.uber.org/zap"
 )
 
 const version = "0.0.1"
@@ -32,18 +30,22 @@ const version = "0.0.1"
 
 func main() {
 	err := godotenv.Load()
+	// Logger
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Fatal("Error loading .env file")
 	}
 	maxOpenConns, err := env.GetInt("DB_MAX_OPEN_CON", 20)
 
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Fatal("Error loading .env file")
 	}
 	maxIdleConns, err := env.GetInt("DB_MAX_IDLE_CON", 20)
 
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Fatal("Error loading .env file")
 	}
 
 	cfg := config{
@@ -57,17 +59,18 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 	}
-	fmt.Println("connecting to database")
+	logger.Info("connecting to database")
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
-		log.Panic(err)
+		logger.Panic(err)
 	}
 	defer db.Close()
 	store := store.NewStorage(db)
 	app := &application{
 		config: cfg,
 		store:  store,
+		logger: logger,
 	}
 	mux := app.mount()
-	log.Fatal(app.run(mux))
+	logger.Fatal(app.run(mux))
 }

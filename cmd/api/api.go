@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -11,11 +10,13 @@ import (
 	"github.com/lunatictiol/go-based-social-media/docs"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"go.uber.org/zap"
 )
 
 type application struct {
 	config config
 	store  store.Storage
+	logger *zap.SugaredLogger
 }
 
 type config struct {
@@ -98,6 +99,6 @@ func (a *application) run(mux http.Handler) error {
 		ReadTimeout:  10 * time.Second,
 		IdleTimeout:  time.Minute,
 	}
-	log.Printf("Starting server on %s", s.Addr)
+	a.logger.Infow("server has started", "addr", a.config.addr, "env", a.config.env)
 	return s.ListenAndServe()
 }
