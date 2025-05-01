@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/joho/godotenv"
 	"github.com/lunatictiol/go-based-social-media/internal/db"
 	"github.com/lunatictiol/go-based-social-media/internal/env"
@@ -58,6 +60,9 @@ func main() {
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
 		},
 		env: env.GetString("ENV", "development"),
+		mail: mailConfig{
+			exp: time.Hour * 24 * 3,
+		},
 	}
 	logger.Info("connecting to database")
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
