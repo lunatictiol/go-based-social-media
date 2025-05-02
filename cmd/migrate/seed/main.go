@@ -21,5 +21,5 @@ func main() {
 	}
 	defer dbs.Close()
 	store := store.NewStorage(dbs)
-	db.Seed(store)
+	db.Seed(store, dbs)
 }

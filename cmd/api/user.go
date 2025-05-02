@@ -54,8 +54,7 @@ func (a *application) getUserfromCtx(r *http.Request) *store.User {
 //	@Failure		404	{object}	error
 //	@Failure		500	{object}	error
 //	@Security		ApiKeyAuth
-//	@Router			/user/{id} [get]
-
+//	@Router			/user/{userID} [get]
 func (a *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := a.getUserfromCtx(r)
 	if err := a.jsonResponse(w, http.StatusOK, user); err != nil {
@@ -151,4 +150,34 @@ func (a *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+}
+
+// ActivateUser godoc
+//
+//	@Summary		Activates/Register a user
+//	@Description	Activates/Register a user by invitation token
+//	@Tags			users
+//	@Param			token	path		string	true	"Invitation token"
+//	@Success		204		{string}	string	"User activated"
+//	@Failure		404		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/user/activate/{token} [put]
+func (a *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	err := a.store.Users.Activate(r.Context(), token)
+
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			a.NotfoundResponse(w, r, err)
+		default:
+			a.WriteInternalServerError(w, r, err)
+		}
+		return
+	}
+
+	if err := a.jsonResponse(w, http.StatusNoContent, ""); err != nil {
+		a.WriteInternalServerError(w, r, err)
+	}
 }

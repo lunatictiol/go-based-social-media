@@ -9,6 +9,17 @@ import (
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 )
 
+type RegisterUserPayload struct {
+	Username string `json:"username" validate:"required,max=100"`
+	Email    string `json:"email" validate:"required,email,max=255"`
+	Password string `json:"password" validate:"required,min=8,max=70"`
+}
+
+type UserWithToken struct {
+	*store.User
+	Token string `json:"token"`
+}
+
 // registerUserHandler godoc
 //
 //	@Summary		Registers a user
@@ -20,17 +31,10 @@ import (
 //	@Success		201		{object}	UserWithToken		"User registered"
 //	@Failure		400		{object}	error
 //	@Failure		500		{object}	error
-//	@Router			/authentication/user [post]
-
-type RegisterUserPayload struct {
-	Username string `json:"username" validate:"required, max=100"`
-	Email    string `json:"email" validate:"required,email, max=255"`
-	Password string `json:"password" validate:"required,min=8, max=70"`
-}
-
+//	@Router			/authenticate/user [post]
 func (a *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	var payload RegisterUserPayload
-	if err := ReadJSON(w, r, payload); err != nil {
+	if err := ReadJSON(w, r, &payload); err != nil {
 		a.BadRequestResponse(w, r, err)
 		return
 	}
@@ -69,5 +73,13 @@ func (a *application) registerUserHandler(w http.ResponseWriter, r *http.Request
 			a.WriteInternalServerError(w, r, err)
 			return
 		}
+	}
+	userWithToken := UserWithToken{
+		User:  user,
+		Token: plainToken,
+	}
+
+	if err := a.jsonResponse(w, http.StatusCreated, userWithToken); err != nil {
+		a.WriteInternalServerError(w, r, err)
 	}
 }
