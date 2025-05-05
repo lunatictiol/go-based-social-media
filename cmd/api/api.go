@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/lunatictiol/go-based-social-media/docs"
+	"github.com/lunatictiol/go-based-social-media/internal/mailer"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
@@ -17,17 +18,21 @@ type application struct {
 	config config
 	store  store.Storage
 	logger *zap.SugaredLogger
+	mailer mailer.Client
 }
 
 type config struct {
-	addr   string
-	apiURL string
-	db     dbConfig
-	env    string
-	mail   mailConfig
+	addr        string
+	apiURL      string
+	db          dbConfig
+	env         string
+	mail        mailConfig
+	frontendURL string
 }
 type mailConfig struct {
-	exp time.Duration
+	exp       time.Duration
+	apiKey    string
+	fromEmail string
 }
 type dbConfig struct {
 	addr         string

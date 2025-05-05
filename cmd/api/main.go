@@ -6,11 +6,14 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/lunatictiol/go-based-social-media/internal/db"
 	"github.com/lunatictiol/go-based-social-media/internal/env"
+	"github.com/lunatictiol/go-based-social-media/internal/mailer"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 	"go.uber.org/zap"
 )
 
-const version = "0.0.1"
+const (
+	version = "0.0.1"
+)
 
 //	@title			Go based social media
 //	@description	API for Go social medias, a social network for gohpers
@@ -51,8 +54,9 @@ func main() {
 	}
 
 	cfg := config{
-		addr:   env.GetString("PORT", ":8080"),
-		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
+		addr:        env.GetString("PORT", ":8080"),
+		apiURL:      env.GetString("EXTERNAL_URL", "localhost:8080"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:5173"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres"),
 			maxOpenConns: maxOpenConns,
@@ -61,7 +65,9 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
-			exp: time.Hour * 24 * 3,
+			exp:       time.Hour * 24 * 3,
+			apiKey:    env.GetString("MAIL_APIKEY", "apikey"),
+			fromEmail: env.GetString("FROM_EMAIL", "from-email"),
 		},
 	}
 	logger.Info("connecting to database")
@@ -71,10 +77,14 @@ func main() {
 	}
 	defer db.Close()
 	store := store.NewStorage(db)
+	//sendgrid
+	//mailer := mailer.NewMailer(cfg.mail.apiKey, cfg.mail.fromEmail)
+	mailer, err := mailer.NewMailTrapClient(cfg.mail.apiKey, cfg.mail.fromEmail)
 	app := &application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 	mux := app.mount()
 	logger.Fatal(app.run(mux))
