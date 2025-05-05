@@ -69,6 +69,12 @@ func main() {
 			apiKey:    env.GetString("MAIL_APIKEY", "apikey"),
 			fromEmail: env.GetString("FROM_EMAIL", "from-email"),
 		},
+		auth: auth{
+			basic: basicConfig{
+				admin:         env.GetString("ADMIN_USER", "admin"),
+				adminPassword: env.GetString("ADMIN_PASSWORD", "password"),
+			},
+		},
 	}
 	logger.Info("connecting to database")
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)

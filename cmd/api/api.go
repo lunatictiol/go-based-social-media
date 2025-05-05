@@ -28,6 +28,16 @@ type config struct {
 	env         string
 	mail        mailConfig
 	frontendURL string
+	auth        auth
+}
+
+type auth struct {
+	basic basicConfig
+}
+
+type basicConfig struct {
+	admin         string
+	adminPassword string
 }
 type mailConfig struct {
 	exp       time.Duration
@@ -58,7 +68,7 @@ func (a *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/health", a.healthCheckHandler)
+		r.With(a.basicAuthMiddleware()).Get("/health", a.healthCheckHandler)
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", a.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
