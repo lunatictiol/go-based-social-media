@@ -9,6 +9,7 @@ import (
 	"github.com/lunatictiol/go-based-social-media/internal/db"
 	"github.com/lunatictiol/go-based-social-media/internal/env"
 	"github.com/lunatictiol/go-based-social-media/internal/mailer"
+	"github.com/lunatictiol/go-based-social-media/internal/ratelimiter"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 	"github.com/lunatictiol/go-based-social-media/internal/store/cache"
 	"go.uber.org/zap"
@@ -60,6 +61,10 @@ func main() {
 	if err != nil {
 		logger.Fatal("Error loading .env file")
 	}
+	RATELIMITER_REQUESTS_COUNT, err := env.GetInt("RATELIMITER_REQUESTS_COUNT", 20)
+	if err != nil {
+		logger.Fatal("Error loading .env file")
+	}
 
 	cfg := config{
 		addr:        env.GetString("PORT", ":8080"),
@@ -94,6 +99,11 @@ func main() {
 			db:      redisDB,
 			enabled: env.GetBool("REDIS_ENABLED", false),
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: RATELIMITER_REQUESTS_COUNT,
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
+		},
 	}
 	logger.Info("connecting to database")
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
@@ -124,6 +134,12 @@ func main() {
 		defer rdb.Close()
 	}
 	cacheStorage := cache.NewRedisStorage(rdb)
+
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
 	app := &application{
 		config:        cfg,
 		store:         store,
@@ -131,6 +147,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
+		ratelimiter:   rateLimiter,
 	}
 	mux := app.mount()
 	logger.Fatal(app.run(mux))

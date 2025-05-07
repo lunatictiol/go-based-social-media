@@ -33,10 +33,18 @@ func (a *application) unauthorisedResponse(w http.ResponseWriter, r *http.Reques
 	WriteJSONError(w, http.StatusUnauthorized, err.Error())
 }
 
-func (app *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Warnf("unauthorized basic error", "method", r.Method, "path", r.URL.Path, "error", err.Error())
+func (a *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	a.logger.Warnf("unauthorized basic error", "method", r.Method, "path", r.URL.Path, "error", err.Error())
 
 	w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
 
 	WriteJSONError(w, http.StatusUnauthorized, "unauthorized")
+}
+
+func (a *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request, retryAfter string) {
+	a.logger.Warnw("rate limit exceeded", "method", r.Method, "path", r.URL.Path)
+
+	w.Header().Set("Retry-After", retryAfter)
+
+	WriteJSONError(w, http.StatusTooManyRequests, "rate limit exceeded, retry after: "+retryAfter)
 }

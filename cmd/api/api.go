@@ -15,6 +15,7 @@ import (
 	"github.com/lunatictiol/go-based-social-media/docs"
 	"github.com/lunatictiol/go-based-social-media/internal/auth"
 	"github.com/lunatictiol/go-based-social-media/internal/mailer"
+	"github.com/lunatictiol/go-based-social-media/internal/ratelimiter"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
 	"github.com/lunatictiol/go-based-social-media/internal/store/cache"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -28,6 +29,7 @@ type application struct {
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	ratelimiter   ratelimiter.Limiter
 }
 
 type config struct {
@@ -39,6 +41,7 @@ type config struct {
 	frontendURL string
 	auth        authConfig
 	redisConfig redisConfig
+	rateLimiter ratelimiter.Config
 }
 
 type authConfig struct {
