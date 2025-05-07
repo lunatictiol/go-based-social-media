@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -141,7 +146,7 @@ func (a *application) run(mux http.Handler) error {
 	docs.SwaggerInfo.Host = a.config.apiURL
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	// Start the server
-	s := &http.Server{
+	srv := &http.Server{
 		Addr:         a.config.addr,
 		Handler:      mux,
 		WriteTimeout: 30 * time.Second,
@@ -149,5 +154,35 @@ func (a *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 	a.logger.Infow("server has started", "addr", a.config.addr, "env", a.config.env)
-	return s.ListenAndServe()
+	shutdown := make(chan error)
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		a.logger.Infow("signal caught", "signal", s.String())
+
+		shutdown <- srv.Shutdown(ctx)
+	}()
+
+	a.logger.Infow("server has started", "addr", a.config.addr, "env", a.config.env)
+
+	err := srv.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	err = <-shutdown
+	if err != nil {
+		return err
+	}
+
+	a.logger.Infow("server has stopped", "addr", a.config.addr, "env", a.config.env)
+
+	return nil
 }
