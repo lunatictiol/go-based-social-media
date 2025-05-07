@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/lib/pq"
 )
@@ -143,6 +145,8 @@ func (s *PostStore) UpdatePost(ctx context.Context, post *Post) error {
 	return nil
 }
 func (S *PostStore) GetUserFeed(ctx context.Context, id int64, fq PaginatedFeedQuery) ([]PostMetaData, error) {
+	fmt.Println("Running with: id =", id, "limit =", fq.Limit, "offset =", fq.Offset, "search =", fq.Search, "tags =", fq.Tags)
+	fmt.Println(reflect.TypeOf(fq.Tags))
 	query := `
 		SELECT 
 			p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags,
@@ -151,17 +155,18 @@ func (S *PostStore) GetUserFeed(ctx context.Context, id int64, fq PaginatedFeedQ
 		FROM posts p
 		LEFT JOIN comments c ON c.post_id = p.id
 		LEFT JOIN users u ON p.user_id = u.id
-		JOIN followers f ON f.follower_id = p.user_id OR p.user_id = $1
+		JOIN followers f ON f.user_id = p.user_id AND f.follower_id = $1
 		WHERE 
-			f.user_id = $1 AND
+			(f.follower_id = $1 OR p.user_id = $1) AND
 			(p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%') AND
-			(p.tags @> $5 OR $5 = '{}')
+			($5::varchar[] IS NULL OR array_length($5::varchar[], 1) = 0 OR p.tags @> $5::varchar[])
 		GROUP BY p.id, u.username
 		ORDER BY p.created_at ` + fq.Sort + `
 		LIMIT $2 OFFSET $3
 	`
 
 	rows, err := S.db.QueryContext(ctx, query, id, fq.Limit, fq.Offset, fq.Search, pq.Array(fq.Tags))
+
 	if err != nil {
 		return nil, err
 	}

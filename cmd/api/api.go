@@ -8,17 +8,21 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/lunatictiol/go-based-social-media/docs"
+	"github.com/lunatictiol/go-based-social-media/internal/auth"
 	"github.com/lunatictiol/go-based-social-media/internal/mailer"
 	"github.com/lunatictiol/go-based-social-media/internal/store"
+	"github.com/lunatictiol/go-based-social-media/internal/store/cache"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	cacheStorage  cache.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -28,11 +32,19 @@ type config struct {
 	env         string
 	mail        mailConfig
 	frontendURL string
-	auth        auth
+	auth        authConfig
+	redisConfig redisConfig
 }
 
-type auth struct {
+type authConfig struct {
 	basic basicConfig
+	token tokenConfig
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 
 type basicConfig struct {
@@ -49,6 +61,13 @@ type dbConfig struct {
 	maxOpenConns int
 	maxIdleConns int
 	maxIdleTime  string
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 //routing
@@ -74,11 +93,13 @@ func (a *application) mount() http.Handler {
 
 		//auth
 		r.Route("/authenticate", func(r chi.Router) {
-			r.Post("/user", a.registerUserHandler)
+			r.Post("/register", a.registerUserHandler)
+			r.Post("/login", a.loginUserHandler)
 		})
 
 		//post handler
 		r.Route("/post", func(r chi.Router) {
+			r.Use(a.AuthTokenMiddleware)
 			r.Post("/", a.createPosthandler)
 			r.Post("/comment", a.createCommentHandler)
 			r.Route("/{postID}", func(r chi.Router) {
@@ -95,16 +116,18 @@ func (a *application) mount() http.Handler {
 
 			r.Put("/activate/{token}", a.activateUserHandler)
 			r.Route("/{userID}", func(r chi.Router) {
-				r.Use(a.userContextMiddleware)
+				r.Use(a.AuthTokenMiddleware)
+
 				r.Get("/", a.getUserHandler)
 				r.Put("/follow", a.followUserHandler)
 				r.Put("/unfollow", a.unfollowUserHandler)
 			})
-		})
 
-		//feed handler
-		r.Group(func(r chi.Router) {
-			r.Get("/feed", a.getUserFeedHandler)
+			//feed handler
+			r.Group(func(r chi.Router) {
+				r.Use(a.AuthTokenMiddleware)
+				r.Get("/feed", a.getUserFeedHandler)
+			})
 		})
 
 	})
