@@ -123,3 +123,37 @@ func (a *application) RateLimiterMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (a *application) checkPostOwnership(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := getUserfromCtx(r)
+		post := a.getPostfromCtx(r)
+
+		if post.UserId == user.Id {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		allowed, err := a.checkRolePrecedence(r.Context(), user, requiredRole)
+		if err != nil {
+			a.WriteInternalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			a.forbiddenResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) checkRolePrecedence(ctx context.Context, user *store.User, roleName string) (bool, error) {
+	role, err := app.store.Roles.GetByName(ctx, roleName)
+	if err != nil {
+		return false, err
+	}
+
+	return user.Role.Level >= role.Level, nil
+}

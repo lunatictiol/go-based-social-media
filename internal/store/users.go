@@ -18,6 +18,8 @@ type User struct {
 	Password  Password `json:"-"`
 	CreatedAt string   `json:"created_at"`
 	IsActive  bool     `json:"is_active"`
+	Role_Id   int64    `json:"role_id"`
+	Role      Role     `json:"role"`
 }
 
 type Password struct {
@@ -45,8 +47,8 @@ var (
 )
 
 func (s *UserStore) Create(ctx context.Context, user *User, tx *sql.Tx) error {
-	query := `INSERT INTO users (username, email,password) 
-	VALUES ($1,$2,$3) RETURNING id,created_at
+	query := `INSERT INTO users (username, email,password,role_id) 
+	VALUES ($1,$2,$3,$4) RETURNING id,created_at
 	`
 	err := tx.QueryRowContext(
 		ctx,
@@ -54,6 +56,7 @@ func (s *UserStore) Create(ctx context.Context, user *User, tx *sql.Tx) error {
 		user.Username,
 		user.Email,
 		user.Password.hash,
+		user.Role_Id,
 	).Scan(
 		&user.Id,
 		&user.CreatedAt,
@@ -72,23 +75,30 @@ func (s *UserStore) Create(ctx context.Context, user *User, tx *sql.Tx) error {
 }
 
 func (s *UserStore) GetUserByID(ctx context.Context, id int64) (*User, error) {
-	var user User
+	query := `
+		INSERT INTO users (username, password, email, role_id) VALUES 
+    ($1, $2, $3, (SELECT id FROM roles WHERE name = $4))
+    RETURNING id, created_at
+	`
+
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
-	query := `
-		SELECT id, email, username, created_at
-		FROM users
-		WHERE id = $1
-	`
+
+	user := &User{}
 	err := s.db.QueryRowContext(
 		ctx,
 		query,
 		id,
 	).Scan(
 		&user.Id,
-		&user.Email,
 		&user.Username,
+		&user.Email,
+		&user.Password.hash,
 		&user.CreatedAt,
+		&user.Role.ID,
+		&user.Role.Name,
+		&user.Role.Level,
+		&user.Role.Description,
 	)
 	if err != nil {
 		switch {
@@ -98,7 +108,7 @@ func (s *UserStore) GetUserByID(ctx context.Context, id int64) (*User, error) {
 			return nil, err
 		}
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (s *UserStore) CreateAndInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error {
