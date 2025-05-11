@@ -1,16 +1,144 @@
+# Go Social Media API
+
+A simple yet robust social media backend written in **Go** using the **Chi router**, **PostgreSQL**, **JWT authentication**, and **role-based authorization**. The project follows the repository pattern, includes rate limiting, CI/CD via GitHub Actions, Swagger documentation, Redis caching, and graceful shutdowns.
+
+---
+
+## 🚀 Features
+
+- User registration and authentication (JWT)
+- Role-based authorization (`user`, `moderator`, `admin`)
+- Create, update, delete posts (with ownership checks)
+- Post comments
+- Follow/unfollow users
+- User feeds
+- Redis caching
+- Graceful shutdowns
+- Swagger API docs
+- Health and debug endpoints
+- Secure routes with middleware
+- CI/CD using GitHub Actions
+
+---
+
+## 📦 Base URL
+
+All routes are versioned under:  
+```
+
+/api/v1
+
+```
+
+---
+
+## 📚 API Endpoints
+
+### 🔐 Authentication
+
+| Method | Endpoint                 | Description         |
+|--------|--------------------------|---------------------|
+| POST   | `/authenticate/register` | Register a new user |
+| POST   | `/authenticate/login`    | Login a user        |
+
+---
+
+### 📝 Posts
+
+Requires JWT via `AuthTokenMiddleware`.
+
+| Method | Endpoint                          | Description                     |
+|--------|-----------------------------------|---------------------------------|
+| POST   | `/post/`                          | Create a new post               |
+| POST   | `/post/comment`                   | Add a comment to a post         |
+| GET    | `/post/{postID}`                  | Retrieve a post by ID           |
+| PATCH  | `/post/{postID}`                  | Update post (requires ownership or `moderator` role) |
+| DELETE | `/post/{postID}`                  | Delete post (requires `admin`)  |
+
+---
+
+### 👤 User
+
+| Method | Endpoint                        | Description                        |
+|--------|---------------------------------|------------------------------------|
+| PUT    | `/user/activate/{token}`        | Activate user account              |
+| GET    | `/user/{userID}`                | Get user profile (auth required)   |
+| PUT    | `/user/{userID}/follow`         | Follow a user (auth required)      |
+| PUT    | `/user/{userID}/unfollow`       | Unfollow a user (auth required)    |
+
+---
+
+### 📰 Feed
+
+| Method | Endpoint          | Description                  |
+|--------|-------------------|------------------------------|
+| GET    | `/user/feed`      | Get user’s social media feed |
+
+---
+
+### 🛠️ Debug & Health
+
+Protected by basic auth.
+
+| Method | Endpoint        | Description              |
+|--------|-----------------|--------------------------|
+| GET    | `/debug/vars`   | App debug variables (expvar) |
+| GET    | `/health`       | Health check endpoint    |
+
+---
+
+### 📄 Swagger Documentation
+
+Interactive API docs are available at:
+
+```
+
+/api/v1/swagger/index.html
+
+````
+
+---
+
+## 🧰 Tech Stack
+
+- **Go** (Golang)
+- **Chi** router
+- **PostgreSQL**
+- **Redis** (cache)
+- **JWT** auth
+- **Zap** (logging)
+- **Swagger** (docs)
+- **GitHub Actions** (CI/CD)
+
+---
+
+## 🛡️ Security
+
+- JWT-based authentication
+- Role-based access control
+- Middleware chain with auth checks
+- Graceful error handling
+- Secure routes (basic auth for internal endpoints)
+
+---
+
+
+## ✅ TODO (Future Enhancements)
+
+* Notifications (e.g., for comments or follows)
+* gRPC-based internal microservices
+* Media/image uploads
+* WebSockets for real-time updates
+* Rate limiter backed by Redis
+* Admin dashboard or analytics endpoints
+
+---
+
+## 📬 Feedback or Issues?
+
+Feel free to open an issue or PR!
 
 
 
-1. `main.go`: This is the entry point of the application, where the main function is defined. The main function creates a new instance of the `App` struct, which contains references to the various components of the application.
-2. `app.go`: This is the central struct that holds references to all the other components of the application. It provides a way to initialize and manage the application's state.
-3. `ratelimiter.go`: This file defines a rate limiter component, which is used to control the number of requests that can be made to the API within a certain time frame. The `Limiter` type defines the interface for rate limiting, and the `FixedWindowLimiter` struct implements this interface with a fixed window size.
-4. `store.go`: This file defines various types for storing data in a database, including `User`, `Post`, `Comment`, and `Follow`. It also includes functions for creating, reading, updating, and deleting data in the database.
-5. `users.go`: This file defines the `User` type and provides functions for creating, reading, updating, and deleting users in the database.
-6. `posts.go`: This file defines the `Post` type and provides functions for creating, reading, updating, and deleting posts in the database.
-7. `comments.go`: This file defines the `Comment` type and provides functions for creating, reading, updating, and deleting comments on posts in the database.
-8. `follow.go`: This file defines the `Follow` type and provides functions for following and unfollowing users in the database.
-9. `main.Controller`: This is a controller function that handles incoming HTTP requests and calls the appropriate functions to handle the request.
-10. `models`: This folder contains the structs and interfaces for the application's data models, including `User`, `Post`, `Comment`, and `Follow`.
-11. `views`: This folder contains the HTML templates for the application's user interface.
-12. `routes`: This folder contains the routes for the application's HTTP requests, which are defined using the `main.Controller` function.
+
 
